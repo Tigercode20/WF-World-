@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="WF World - نظام إدارة العملاء والاشتراكات">
+  <title>WF World - الصفحة الرئيسية</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container navbar-container">
+      <a href="index.html" class="navbar-brand">⚡ WF World</a>
+      <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <ul class="navbar-menu">
+          <li><a href="index.html" class="navbar-link active">الرئيسية</a></li>
+          <li><a href="client-registration.html" class="navbar-link">تسجيل عميل</a></li>
+          <li><a href="sales.html" class="navbar-link">المبيعات</a></li>
+          <li><a href="clients-dashboard.html" class="navbar-link">قائمة العملاء</a></li>
+          <li><a href="client-lookup.html" class="navbar-link">بحث</a></li>
+        </ul>
+        <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">☀️</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container" style="padding: 2rem 0;">
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+      <h1>🎯 لوحة التحكم</h1>
+      <p style="font-size: 1.1rem; color: var(--text-secondary);">
+        نظام إدارة متكامل للعملاء والاشتراكات والخطط
+      </p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid" id="stats-container">
+      <!-- Stats will be loaded dynamically -->
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+      <h2>⚡ إجراءات سريعة</h2>
+      <div class="d-flex gap-2" style="flex-wrap: wrap; margin-top: 1rem;">
+        <a href="client-registration.html" class="btn btn-primary">
+          <span>👤</span>
+          تسجيل عميل جديد
+        </a>
+        <a href="sales.html" class="btn btn-success">
+          <span>💳</span>
+          تسجيل اشتراك
+        </a>
+        <a href="assign-plan.html" class="btn btn-secondary">
+          <span>📋</span>
+          تخصيص خطة
+        </a>
+        <a href="client-updates.html" class="btn btn-outline">
+          <span>📊</span>
+          متابعة عميل
+        </a>
+        <a href="import-excel.html" class="btn btn-primary"
+          style="background: linear-gradient(135deg, #2196f3 0%, #00c853 100%);">
+          <span>📥</span>
+          استيراد من Excel
+        </a>
+        <button onclick="db.exportData()" class="btn btn-outline">
+          <span>💾</span>
+          نسخ احتياطي
+        </button>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+      <!-- Expiring Subscriptions -->
+      <div class="col">
+        <div class="card">
+          <h3>⚠️ اشتراكات قريبة من الانتهاء</h3>
+          <div id="expiring-subscriptions" style="margin-top: 1rem;">
+            <!-- Will be loaded dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Revenue by Package -->
+      <div class="col">
+        <div class="card">
+          <h3>💰 الإيرادات حسب الباقة</h3>
+          <div id="revenue-chart" style="margin-top: 1rem;">
+            <!-- Will be loaded dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer style="text-align: center; padding: 2rem; color: var(--text-muted); margin-top: 3rem;">
+    <p>© 2025 WF World - جميع الحقوق محفوظة</p>
+    <p style="font-size: 0.9rem;">نظام إدارة احترافي للتغذية والتدريب</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    // Load dashboard data
+    function loadDashboard() {
+      // Get statistics
+      const stats = db.getStatistics();
+
+      // Render stats cards
+      const statsContainer = document.getElementById('stats-container');
+      statsContainer.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-value">${stats.totalClients}</div>
+          <div class="stat-label">إجمالي العملاء</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">${stats.activeSubscriptions}</div>
+          <div class="stat-label">الاشتراكات النشطة</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-value">${stats.expiringSubscriptions}</div>
+          <div class="stat-label">قرب الانتهاء</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value">${formatCurrency(stats.totalRevenue, 'EGP')}</div>
+          <div class="stat-label">إجمالي الإيرادات</div>
+        </div>
+      `;
+
+      // Load expiring subscriptions
+      loadExpiringSubscriptions();
+
+      // Load revenue by package
+      loadRevenueByPackage();
+    }
+
+    function loadExpiringSubscriptions() {
+      const allSubs = db.getAllSubscriptions();
+      const expiring = allSubs.filter(sub => {
+        const status = db.getSubscriptionStatus(sub);
+        return status === 'expiring-soon';
+      }).slice(0, 5); // Show only first 5
+
+      const container = document.getElementById('expiring-subscriptions');
+
+      if (expiring.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted);">لا توجد اشتراكات قريبة من الانتهاء</p>';
+        return;
+      }
+
+      container.innerHTML = expiring.map(sub => {
+        const client = db.getClient(sub.clientCode);
+        const days = db.calculateDaysRemaining(sub);
+        return `
+          <div style="padding: 0.75rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong>${client ? client.fullName : sub.clientCode}</strong>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                  ${sub.package} - ينتهي بعد ${days} ${days === 1 ? 'يوم' : 'أيام'}
+                </div>
+              </div>
+              <span class="badge badge-warning">⏰ قرب الانتهاء</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function loadRevenueByPackage() {
+      const revenue = db.getRevenueByPackage();
+      const container = document.getElementById('revenue-chart');
+
+      if (Object.keys(revenue).length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted);">لا توجد بيانات للعرض</p>';
+        return;
+      }
+
+      // Simple bar chart representation
+      const total = Object.values(revenue).reduce((sum, val) => sum + val, 0);
+
+      container.innerHTML = Object.entries(revenue).map(([pkg, amount]) => {
+        const percentage = ((amount / total) * 100).toFixed(1);
+        return `
+          <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <span style="font-weight: 600;">${pkg}</span>
+              <span style="color: var(--text-muted);">${formatCurrency(amount, 'EGP')}</span>
+            </div>
+            <div style="background: var(--bg-glass); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="background: var(--primary-gradient); height: 100%; width: ${percentage}%; transition: width 0.5s ease;"></div>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+              ${percentage}% من الإجمالي
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Initialize dashboard on load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboard();
+
+      // Add some demo data if database is empty
+      const stats = db.getStatistics();
+      if (stats.totalClients === 0) {
+        addDemoData();
+        loadDashboard();
+      }
+    });
+
+    // Add demo data function
+    function addDemoData() {
+      // Add 3 demo clients
+      const client1 = db.addClient({
+        fullName: 'أحمد محمد علي',
+        email: 'ahmed@example.com',
+        phone: '+201234567890',
+        country: 'مصر',
+        religion: 'مسلم'
+      });
+
+      const client2 = db.addClient({
+        fullName: 'سارة خالد',
+        email: 'sara@example.com',
+        phone: '+201098765432',
+        country: 'السعودية',
+        religion: 'مسلم'
+      });
+
+      const client3 = db.addClient({
+        fullName: 'محمد حسن',
+        email: 'mohamed@example.com',
+        phone: '+201555555555',
+        country: 'الإمارات',
+        religion: 'مسلم'
+      });
+
+      // Add subscriptions
+      db.addSubscription({
+        clientCode: client1.clientCode,
+        type: 'new',
+        package: 'Gold',
+        amount: 500,
+        currency: 'EGP',
+        paymentMethod: 'فودافون كاش'
+      });
+
+      db.addSubscription({
+        clientCode: client2.clientCode,
+        type: 'new',
+        package: 'Silver',
+        amount: 200,
+        currency: 'SAR',
+        paymentMethod: 'حساب بنكي'
+      });
+
+      // Add one expiring soon (manipulate the dates)
+      const expiringSub = db.addSubscription({
+        clientCode: client3.clientCode,
+        type: 'new',
+        package: 'Bronze',
+        amount: 150,
+        currency: 'EGP',
+        paymentMethod: 'Orange Cash'
+      });
+
+      // Manually update to expire soon (5 days from now)
+      const data = db.loadData();
+      const subIndex = data.subscriptions.findIndex(s => s.subscriptionId === expiringSub.subscriptionId);
+      if (subIndex !== -1) {
+        const fiveDaysFromNow = new Date();
+        fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+        data.subscriptions[subIndex].endDate = fiveDaysFromNow.toISOString();
+        db.saveData(data);
+      }
+
+      showAlert('تم إضافة بيانات تجريبية للعرض', 'success');
+    }
+  </script>
+</body>
+
+</html>

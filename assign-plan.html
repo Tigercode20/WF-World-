@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تخصيص خطة - WF World</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="index.html" class="navbar-brand">⚡ WF World</a>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <ul class="navbar-menu">
+                    <li><a href="index.html" class="navbar-link">الرئيسية</a></li>
+                    <li><a href="client-registration.html" class="navbar-link">تسجيل عميل</a></li>
+                    <li><a href="sales.html" class="navbar-link">المبيعات</a></li>
+                    <li><a href="clients-dashboard.html" class="navbar-link">قائمة العملاء</a></li>
+                    <li><a href="client-lookup.html" class="navbar-link">بحث</a></li>
+                </ul>
+            </div>
+    </nav> <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">☀️</button>
+    </div>
+    </div>
+    </nav>
+
+    <main class="container" style="padding: 2rem 0; max-width: 900px;">
+        <div class="card">
+            <h1>📋 تخصيص خطة للعميل</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                أنشئ خطة غذائية وتدريبية مخصصة للعميل
+            </p>
+
+            <form id="plan-form">
+                <!-- Client Selection -->
+                <div class="form-group">
+                    <label for="clientCode" class="form-label">العميل *</label>
+                    <select id="clientCode" name="clientCode" class="form-control" required>
+                        <option value="">-- اختر العميل --</option>
+                    </select>
+                </div>
+
+                <!-- Client Info Display -->
+                <div id="client-info-display"
+                    style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-glass); border-radius: var(--radius-md);">
+                    <!-- Will be populated dynamically -->
+                </div>
+
+                <!-- Plan Duration -->
+                <div class="form-group">
+                    <label for="duration" class="form-label">مدة الخطة (بالأيام) *</label>
+                    <input type="number" id="duration" name="duration" class="form-control" value="30" min="1" required>
+                </div>
+
+                <!-- Diet Plan Section -->
+                <div class="alert alert-info">
+                    <h3 style="margin-top: 0;">🥗 الخطة الغذائية</h3>
+                </div>
+
+                <div class="form-group">
+                    <label for="dietGoal" class="form-label">الهدف الغذائي</label>
+                    <select id="dietGoal" name="dietGoal" class="form-control">
+                        <option value="">-- اختر الهدف --</option>
+                        <option value="إنقاص الوزن">إنقاص الوزن</option>
+                        <option value="زيادة الوزن">زيادة الوزن</option>
+                        <option value="بناء العضلات">بناء العضلات</option>
+                        <option value="المحافظة على الوزن">المحافظة على الوزن</option>
+                    </select>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label for="calories" class="form-label">السعرات الحرارية (يومياً)</label>
+                            <input type="number" id="calories" name="calories" class="form-control" placeholder="2000">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label for="protein" class="form-label">البروتين (جرام)</label>
+                            <input type="number" id="protein" name="protein" class="form-control" placeholder="150">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label for="carbs" class="form-label">الكربوهيدرات (جرام)</label>
+                            <input type="number" id="carbs" name="carbs" class="form-control" placeholder="200">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label for="fats" class="form-label">الدهون (جرام)</label>
+                            <input type="number" id="fats" name="fats" class="form-control" placeholder="60">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="dietNotes" class="form-label">ملاحظات خاصة بالنظام الغذائي</label>
+                    <textarea id="dietNotes" name="dietNotes" class="form-control" rows="4"
+                        placeholder="مثال: تجنب منتجات الألبان، حساسية من المكسرات..."></textarea>
+                </div>
+
+                <!-- Workout Plan Section -->
+                <div class="alert alert-info" style="margin-top: 2rem;">
+                    <h3 style="margin-top: 0;">🏋️ الخطة التدريبية</h3>
+                </div>
+
+                <div class="form-group">
+                    <label for="workoutGoal" class="form-label">الهدف التدريبي</label>
+                    <select id="workoutGoal" name="workoutGoal" class="form-control">
+                        <option value="">-- اختر الهدف --</option>
+                        <option value="حرق الدهون">حرق الدهون</option>
+                        <option value="بناء العضلات">بناء العضلات</option>
+                        <option value="اللياقة العامة">اللياقة العامة</option>
+                        <option value="زيادة القوة">زيادة القوة</option>
+                    </select>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label for="workoutDays" class="form-label">عدد الأيام (أسبوعياً)</label>
+                            <input type="number" id="workoutDays" name="workoutDays" class="form-control" min="1"
+                                max="7" placeholder="5">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label for="sessionDuration" class="form-label">مدة الجلسة (بالدقائق)</label>
+                            <input type="number" id="sessionDuration" name="sessionDuration" class="form-control"
+                                placeholder="60">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="workoutLocation" class="form-label">مكان التدريب</label>
+                    <select id="workoutLocation" name="workoutLocation" class="form-control">
+                        <option value="">-- اختر المكان --</option>
+                        <option value="الجيم">الجيم</option>
+                        <option value="المنزل">المنزل</option>
+                        <option value="الخارج">في الخارج</option>
+                        <option value="مختلط">مختلط</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="workoutNotes" class="form-label">ملاحظات خاصة بالتدريب</label>
+                    <textarea id="workoutNotes" name="workoutNotes" class="form-control" rows="4"
+                        placeholder="مثال: تجنب تمارين الضغط على الركبة، التركيز على الجزء العلوي..."></textarea>
+                </div>
+
+                <!-- General Notes -->
+                <div class="form-group" style="margin-top: 2rem;">
+                    <label for="generalNotes" class="form-label">ملاحظات عامة</label>
+                    <textarea id="generalNotes" name="generalNotes" class="form-control" rows="3"
+                        placeholder="أي ملاحظات أو تعليمات إضافية..."></textarea>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-2" style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">
+                        ✅ حفظ الخطة
+                    </button>
+                    <button type="reset" class="btn btn-outline">
+                        🔄 مسح الحقول
+                    </button>
+                    <a href="index.html" class="btn btn-outline">
+                        ↩️ العودة للرئيسية
+                    </a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/db.js"></script>
+    <script src="js/ui.js"></script>
+    <script>
+        // Load clients
+        document.addEventListener('DOMContentLoaded', function () {
+            const clients = db.getAllClients();
+            const select = document.getElementById('clientCode');
+
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.clientCode;
+                option.textContent = `${client.fullName} (${client.clientCode})`;
+                select.appendChild(option);
+            });
+        });
+
+        // Show client info when selected
+        document.getElementById('clientCode').addEventListener('change', function (e) {
+            const code = e.target.value;
+            const infoDiv = document.getElementById('client-info-display');
+
+            if (!code) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+
+            const data = db.getClientCompleteData(code);
+            if (!data) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+
+            const client = data.client;
+            const activeSub = data.activeSubscription;
+            const latestPlan = data.latestPlan;
+
+            infoDiv.innerHTML = `
+        <strong>معلومات العميل:</strong><br>
+        <div style="margin-top: 0.5rem;">
+          📧 ${client.email} • 📞 ${client.phone} • 🌍 ${client.country}<br>
+          ${activeSub ? `✅ اشتراك نشط: ${activeSub.package} (${data.daysRemaining} يوم متبقي)` : '❌ لا يوجد اشتراك نشط'}
+        </div>
+        ${latestPlan ? `
+          <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+            <strong>آخر خطة:</strong> ${latestPlan.planId} - ${formatDate(latestPlan.createdAt)}
+          </div>
+        ` : ''}
+      `;
+            infoDiv.style.display = 'block';
+        });
+
+        // Form submission
+        document.getElementById('plan-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            const planData = {
+                clientCode: formData.get('clientCode'),
+                duration: parseInt(formData.get('duration')),
+                dietPlan: {
+                    goal: formData.get('dietGoal'),
+                    calories: formData.get('calories') ? parseInt(formData.get('calories')) : null,
+                    protein: formData.get('protein') ? parseInt(formData.get('protein')) : null,
+                    carbs: formData.get('carbs') ? parseInt(formData.get('carbs')) : null,
+                    fats: formData.get('fats') ? parseInt(formData.get('fats')) : null,
+                    notes: formData.get('dietNotes').trim()
+                },
+                workoutPlan: {
+                    goal: formData.get('workoutGoal'),
+                    daysPerWeek: formData.get('workoutDays') ? parseInt(formData.get('workoutDays')) : null,
+                    sessionDuration: formData.get('sessionDuration') ? parseInt(formData.get('sessionDuration')) : null,
+                    location: formData.get('workoutLocation'),
+                    notes: formData.get('workoutNotes').trim()
+                },
+                notes: formData.get('generalNotes').trim()
+            };
+
+            if (!planData.clientCode) {
+                showAlert('يرجى اختيار العميل', 'warning');
+                return;
+            }
+
+            showLoading('جاري حفظ الخطة...');
+
+            setTimeout(() => {
+                try {
+                    const newPlan = db.addPlan(planData);
+                    const client = db.getClient(planData.clientCode);
+
+                    hideLoading();
+                    showAlert(`تم حفظ الخطة للعميل: ${client.fullName} (${newPlan.planId})`, 'success');
+
+                    this.reset();
+                    document.getElementById('client-info-display').style.display = 'none';
+
+                } catch (error) {
+                    hideLoading();
+                    showAlert('حدث خطأ: ' + error.message, 'danger');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>

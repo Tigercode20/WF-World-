@@ -1,0 +1,184 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قائمة العملاء - WF World</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="index.html" class="navbar-brand">⚡ WF World</a>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <ul class="navbar-menu">
+                    <li><a href="index.html" class="navbar-link">الرئيسية</a></li>
+                    <li><a href="client-registration.html" class="navbar-link">تسجيل عميل</a></li>
+                    <li><a href="sales.html" class="navbar-link">المبيعات</a></li>
+                    <li><a href="clients-dashboard.html" class="navbar-link active">قائمة العملاء</a></li>
+                    <li><a href="client-lookup.html" class="navbar-link">بحث</a></li>
+                </ul>
+            </div>
+    </nav> <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">☀️</button>
+    </div>
+    </div>
+    </nav>
+
+    <main class="container" style="padding: 2rem 0;">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h1>👥 قائمة العملاء</h1>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="exportClientsToCSV()" class="btn btn-outline">
+                        📥 تصدير CSV
+                    </button>
+                    <button onclick="clearAllDataConfirm()" class="btn btn-outline"
+                        style="background: linear-gradient(135deg, #f44336 0%, #e91e63 100%); color: white;">
+                        🗑️ مسح كل البيانات
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Box -->
+            <div class="form-group">
+                <input type="text" id="search-box" class="form-control"
+                    placeholder="🔍 ابحث بالاسم، البريد الإلكتروني، الهاتف، أو كود العميل...">
+            </div>
+
+            <!-- Clients Table -->
+            <div class="table-container" style="margin-top: 1.5rem;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الكود</th>
+                            <th>الاسم</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الهاتف</th>
+                            <th>الدولة</th>
+                            <th>الحالة</th>
+                            <th>تاريخ التسجيل</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-table-body">
+                        <!-- Will be loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="no-results" style="display: none; text-align: center; padding: 2rem; color: var(--text-muted);">
+                لا توجد نتائج
+            </div>
+        </div>
+    </main>
+
+    <script src="js/confirm-modal.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/ui.js"></script>
+    <script>
+        let allClients = [];
+
+        function loadClients() {
+            allClients = db.getAllClients();
+            renderClients(allClients);
+        }
+
+        function renderClients(clients) {
+            const tbody = document.getElementById('clients-table-body');
+            const noResults = document.getElementById('no-results');
+
+            if (clients.length === 0) {
+                tbody.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
+
+            noResults.style.display = 'none';
+            tbody.innerHTML = clients.map(client => {
+                const activeSub = db.getActiveSubscription(client.clientCode);
+                const status = db.getSubscriptionStatus(activeSub);
+
+                return `
+          <tr>
+            <td><strong>${client.clientCode}</strong></td>
+            <td>${client.fullName}</td>
+            <td>${client.email}</td>
+            <td>${client.phone}</td>
+            <td>${client.country}</td>
+            <td>${getStatusBadge(status)}</td>
+            <td>${formatDate(client.registrationDate)}</td>
+            <td>
+              <div style="display: flex; gap: 0.25rem;">
+                <a href="client-lookup.html?code=${client.clientCode}" class="btn btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem;">
+                  👁️ عرض
+                </a>
+                <button onclick="deleteClientConfirm('${client.clientCode}', '${client.fullName}')" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; background: rgba(244, 67, 54, 0.1); color: #f44336; border-color: #f44336;">
+                  🗑️ حذف
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+            }).join('');
+        }
+
+        // Search functionality
+        document.getElementById('search-box').addEventListener('input', function (e) {
+            const query = e.target.value.trim();
+
+            if (!query) {
+                renderClients(allClients);
+                return;
+            }
+
+            const filtered = db.searchClients(query);
+            renderClients(filtered);
+        });
+
+        // Export to CSV
+        function exportClientsToCSV() {
+            const data = allClients.map(client => ({
+                'كود العميل': client.clientCode,
+                'الاسم': client.fullName,
+                'البريد': client.email,
+                'الهاتف': client.phone,
+                'الدولة': client.country,
+                'الديانة': client.religion,
+                'تاريخ التسجيل': formatDate(client.registrationDate)
+            }));
+
+            exportToCSV(data, `clients_${new Date().toISOString().split('T')[0]}.csv`);
+        }
+
+        // Delete client function
+        function deleteClientConfirm(clientCode, clientName) {
+            const message = `هل أنت متأكد من حذف العميل "${clientName}"؟\n\nسيتم حذف:\n• بيانات العميل\n• جميع الاشتراكات\n• جميع الخطط\n• جميع التحديثات\n\nهذا الإجراء لا يمكن التراجع عنه!`;
+
+            showCustomConfirm(message, function () {
+                const result = db.deleteClient(clientCode);
+                if (result) {
+                    showAlert(`تم حذف العميل "${clientName}" بنجاح`, 'success');
+                    loadClients(); // Reload the table
+                }
+            });
+        }
+
+        // Clear all data function
+        function clearAllDataConfirm() {
+            const message = `هل أنت متأكد من حذف جميع البيانات؟\n\nسيتم حذف:\n• جميع العملاء\n• جميع الاشتراكات\n• جميع الخطط\n• جميع التحديثات\n\nهذا الإجراء لا يمكن التراجع عنه!`;
+
+            showCustomConfirm(message, function () {
+                localStorage.removeItem('raw123_world_db');
+                db.initializeDatabase();
+                showAlert('تم حذف جميع البيانات بنجاح', 'success');
+                loadClients(); // Reload the table
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadClients);
+    </script>
+</body>
+
+</html>

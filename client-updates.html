@@ -1,0 +1,210 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متابعة العميل - WF World</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="index.html" class="navbar-brand">⚡ WF World</a>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <ul class="navbar-menu">
+                    <li><a href="index.html" class="navbar-link">الرئيسية</a></li>
+                    <li><a href="client-registration.html" class="navbar-link">تسجيل عميل</a></li>
+                    <li><a href="sales.html" class="navbar-link">المبيعات</a></li>
+                    <li><a href="clients-dashboard.html" class="navbar-link">قائمة العملاء</a></li>
+                    <li><a href="client-lookup.html" class="navbar-link">بحث</a></li>
+                </ul>
+            </div>
+    </nav> <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">☀️</button>
+    </div>
+    </div>
+    </nav>
+
+    <main class="container" style="padding: 2rem 0; max-width: 800px;">
+        <div class="card">
+            <h1>📊 متابعة تقدم العميل</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                سجّل ملاحظات حول التزام العميل وتقدمه في الخطة
+            </p>
+
+            <form id="update-form">
+                <!-- Client Selection -->
+                <div class="form-group">
+                    <label for="clientCode" class="form-label">العميل *</label>
+                    <select id="clientCode" name="clientCode" class="form-control" required>
+                        <option value="">-- اختر العميل --</option>
+                    </select>
+                </div>
+
+                <!-- Client Info Display -->
+                <div id="client-info-display"
+                    style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-glass); border-radius: var(--radius-md);">
+                    <!-- Will be populated dynamically -->
+                </div>
+
+                <!-- Compliance Percentage -->
+                <div class="form-group">
+                    <label for="compliancePercentage" class="form-label">نسبة الالتزام (%) *</label>
+                    <input type="range" id="compliancePercentage" name="compliancePercentage" class="form-control"
+                        min="0" max="100" value="80" step="5" required style="height: 40px; cursor: pointer;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                        <span style="color: var(--text-muted);">0%</span>
+                        <span id="compliance-display"
+                            style="font-size: 1.5rem; font-weight: 700; color: var(--accent-purple);">80%</span>
+                        <span style="color: var(--text-muted);">100%</span>
+                    </div>
+                </div>
+
+                <!-- Diet Feedback -->
+                <div class="form-group">
+                    <label for="dietFeedback" class="form-label">ملاحظات على النظام الغذائي</label>
+                    <textarea id="dietFeedback" name="dietFeedback" class="form-control" rows="4"
+                        placeholder="مثال: التزم العميل بشكل جيد، لكن يحتاج لزيادة البروتين..."></textarea>
+                </div>
+
+                <!-- Workout Feedback -->
+                <div class="form-group">
+                    <label for="workoutFeedback" class="form-label">ملاحظات على التدريب</label>
+                    <textarea id="workoutFeedback" name="workoutFeedback" class="form-control" rows="4"
+                        placeholder="مثال: تحسن ملحوظ في الأداء، يمكن زيادة الأوزان..."></textarea>
+                </div>
+
+                <!-- Current Status -->
+                <div class="form-group">
+                    <label for="currentStatus" class="form-label">الحالة العامة</label>
+                    <textarea id="currentStatus" name="currentStatus" class="form-control" rows="3"
+                        placeholder="مثال: العميل متحمس ومستمر، يحتاج لدعم نفسي..."></textarea>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-2" style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">
+                        ✅ حفظ المتابعة
+                    </button>
+                    <button type="reset" class="btn btn-outline">
+                        🔄 مسح الحقول
+                    </button>
+                    <a href="index.html" class="btn btn-outline">
+                        ↩️ العودة للرئيسية
+                    </a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/db.js"></script>
+    <script src="js/ui.js"></script>
+    <script>
+        // Load clients
+        document.addEventListener('DOMContentLoaded', function () {
+            const clients = db.getAllClients();
+            const select = document.getElementById('clientCode');
+
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.clientCode;
+                option.textContent = `${client.fullName} (${client.clientCode})`;
+                select.appendChild(option);
+            });
+        });
+
+        // Update compliance display
+        document.getElementById('compliancePercentage').addEventListener('input', function (e) {
+            document.getElementById('compliance-display').textContent = e.target.value + '%';
+
+            // Change color based on percentage
+            const display = document.getElementById('compliance-display');
+            const value = parseInt(e.target.value);
+            if (value >= 80) {
+                display.style.color = 'var(--accent-success)';
+            } else if (value >= 50) {
+                display.style.color = 'var(--accent-warning)';
+            } else {
+                display.style.color = 'var(--accent-danger)';
+            }
+        });
+
+        // Show client info when selected
+        document.getElementById('clientCode').addEventListener('change', function (e) {
+            const code = e.target.value;
+            const infoDiv = document.getElementById('client-info-display');
+
+            if (!code) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+
+            const data = db.getClientCompleteData(code);
+            if (!data) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+
+            const client = data.client;
+            const activeSub = data.activeSubscription;
+            const latestUpdate = data.latestUpdate;
+
+            infoDiv.innerHTML = `
+        <strong>معلومات العميل:</strong><br>
+        <div style="margin-top: 0.5rem;">
+          📧 ${client.email} • 📞 ${client.phone}<br>
+          ${activeSub ? `✅ اشتراك نشط: ${activeSub.package} (${data.daysRemaining} يوم متبقي)` : '❌ لا يوجد اشتراك نشط'}
+        </div>
+        ${latestUpdate ? `
+          <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+            <strong>آخر متابعة:</strong> ${latestUpdate.compliancePercentage}% التزام - ${formatDate(latestUpdate.createdAt)}
+          </div>
+        ` : ''}
+      `;
+            infoDiv.style.display = 'block';
+        });
+
+        // Form submission
+        document.getElementById('update-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const updateData = {
+                clientCode: formData.get('clientCode'),
+                compliancePercentage: formData.get('compliancePercentage'),
+                dietFeedback: formData.get('dietFeedback').trim(),
+                workoutFeedback: formData.get('workoutFeedback').trim(),
+                currentStatus: formData.get('currentStatus').trim()
+            };
+
+            if (!updateData.clientCode) {
+                showAlert('يرجى اختيار العميل', 'warning');
+                return;
+            }
+
+            showLoading('جاري حفظ المتابعة...');
+
+            setTimeout(() => {
+                try {
+                    const newUpdate = db.addUpdate(updateData);
+                    const client = db.getClient(updateData.clientCode);
+
+                    hideLoading();
+                    showAlert(`تم حفظ متابعة العميل: ${client.fullName}`, 'success');
+
+                    this.reset();
+                    document.getElementById('client-info-display').style.display = 'none';
+                    document.getElementById('compliance-display').textContent = '80%';
+
+                } catch (error) {
+                    hideLoading();
+                    showAlert('حدث خطأ: ' + error.message, 'danger');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>
