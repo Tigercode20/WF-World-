@@ -138,6 +138,9 @@
     <script src="js/db.js"></script>
     <script src="js/ui.js"></script>
     <script>
+        // Store all loaded sales for edit/delete
+        let loadedSales = [];
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', async function () {
             await loadClients();
@@ -316,6 +319,8 @@
                 const clientCodes = new Set(clients.map(c => String(c.clientCode)));
 
                 const recentSales = sales.slice(-15).reverse();
+                loadedSales = recentSales; // Store for edit/delete
+                console.log('Loaded sales with IDs:', recentSales.map(s => s.id));
 
                 if (recentSales.length === 0) {
                     container.innerHTML = '<p style="color: var(--text-muted);">لم يتم تسجيل أي مبيعات بعد</p>';
@@ -371,6 +376,10 @@
 
         // Delete sale
         async function deleteSale(saleId, clientName) {
+            if (!saleId) {
+                showAlert('خطأ: لا يوجد معرف للاشتراك', 'danger');
+                return;
+            }
             if (!confirm(`هل تريد حذف هذا الاشتراك للعميل "${clientName}"؟`)) return;
 
             try {
@@ -384,14 +393,28 @@
 
         // Edit sale - populate form with sale data
         async function editSale(saleId) {
+            console.log('Editing sale with ID:', saleId);
+
+            if (!saleId || saleId === 'undefined') {
+                showAlert('خطأ: لا يوجد معرف للاشتراك', 'danger');
+                return;
+            }
+
             try {
-                const doc = await db.subscriptionsCol.doc(saleId).get();
-                if (!doc.exists) {
-                    showAlert('لم يتم العثور على الاشتراك', 'warning');
-                    return;
+                // Find in loaded sales first (faster)
+                let sale = loadedSales.find(s => s.id === saleId);
+
+                if (!sale) {
+                    // Fallback to Firestore
+                    const doc = await db.subscriptionsCol.doc(saleId).get();
+                    if (!doc.exists) {
+                        showAlert('لم يتم العثور على الاشتراك', 'warning');
+                        return;
+                    }
+                    sale = doc.data();
                 }
 
-                const sale = doc.data();
+                console.log('Sale data:', sale);
 
                 // Fill form
                 document.getElementById('type').value = sale.subscriptionType || 'renew';
@@ -404,8 +427,9 @@
                 // Scroll to form
                 document.getElementById('sales-form').scrollIntoView({ behavior: 'smooth' });
 
-                showAlert('تم تحميل بيانات الاشتراك للتعديل', 'info');
+                showAlert('تم تحميل بيانات الاشتراك للتعديل - عدّل وأعد الإرسال', 'info');
             } catch (e) {
+                console.error('Edit error:', e);
                 showAlert('فشل تحميل البيانات: ' + e.message, 'danger');
             }
         }
