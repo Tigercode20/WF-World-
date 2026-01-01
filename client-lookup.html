@@ -19,6 +19,7 @@
           <li><a href="sales.html" class="navbar-link">المبيعات</a></li>
           <li><a href="clients-dashboard.html" class="navbar-link">قائمة العملاء</a></li>
           <li><a href="client-lookup.html" class="navbar-link active">بحث</a></li>
+          <li><a href="settings.html" class="navbar-link">الإعدادات</a></li>
         </ul>
       </div>
   </nav> <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">☀️</button>
@@ -85,18 +86,24 @@
     </div>
   </main>
 
+  <!-- Firebase SDK (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/db.js"></script>
   <script src="js/ui.js"></script>
   <script>
     // Check URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const codeFromURL = urlParams.get('code');
-    if (codeFromURL) {
-      document.getElementById('client-code-search').value = codeFromURL;
-      searchClient();
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeFromURL = urlParams.get('code');
+      if (codeFromURL) {
+        document.getElementById('client-code-search').value = codeFromURL;
+        searchClient();
+      }
+    });
 
-    function searchClient() {
+    async function searchClient() {
       const code = document.getElementById('client-code-search').value.trim().toUpperCase();
 
       if (!code) {
@@ -106,11 +113,12 @@
 
       showLoading('جاري البحث...');
 
-      setTimeout(() => {
-        const data = db.getClientCompleteData(code);
+      try {
+        // Fetch client data using async method
+        const client = await window.db.getClient(code);
         hideLoading();
 
-        if (!data || !data.client) {
+        if (!client) {
           document.getElementById('results-container').style.display = 'none';
           document.getElementById('not-found').style.display = 'block';
           return;
@@ -119,163 +127,123 @@
         document.getElementById('not-found').style.display = 'none';
         document.getElementById('results-container').style.display = 'block';
 
-        displayClientInfo(data);
-        displaySubscriptionInfo(data);
-        displaySubscriptionHistory(data);
-        displayPlans(data);
-        displayUpdates(data);
-      }, 300);
+        // Display client info
+        displayClientInfo(client);
+
+        // For now, show placeholder for subscriptions/plans until those collections are fully implemented
+        document.getElementById('subscription-info').innerHTML = '<p style="color: var(--text-muted);">جاري التحميل...</p>';
+        document.getElementById('subscription-history').innerHTML = '<p style="color: var(--text-muted);">قريباً</p>';
+        document.getElementById('plans-info').innerHTML = '<p style="color: var(--text-muted);">قريباً</p>';
+        document.getElementById('updates-info').innerHTML = '<p style="color: var(--text-muted);">قريباً</p>';
+
+      } catch (error) {
+        hideLoading();
+        console.error('Search error:', error);
+        showAlert('حدث خطأ: ' + error.message, 'danger');
+      }
     }
 
-    function displayClientInfo(data) {
-      const client = data.client;
+    function displayClientInfo(client) {
+      // Helper to show field if exists
+      const field = (label, value, suffix = '') =>
+        value ? `<div class="info-row"><strong>${label}:</strong> ${value}${suffix}</div>` : '';
+
       document.getElementById('client-info').innerHTML = `
+        <style>
+          .info-row { padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+          .info-section { margin-top: 1.5rem; padding-top: 1rem; border-top: 2px solid var(--accent-purple); }
+          .info-section h4 { margin: 0 0 1rem 0; color: var(--accent-purple); }
+        </style>
+        
+        <!-- Basic Info -->
         <div class="row" style="gap: 2rem;">
           <div class="col">
             <strong>الكود:</strong><br>
-            <span class="badge badge-primary" style="font-size: 1rem; margin-top: 0.25rem;">${client.clientCode}</span>
+            <span class="badge badge-primary" style="font-size: 1.2rem;">${client.clientCode}</span>
           </div>
           <div class="col">
-            <strong>الاسم الكامل:</strong><br>
-            ${client.fullName}
-          </div>
-          <div class="col">
-            <strong>البريد الإلكتروني:</strong><br>
-            ${client.email}
+            <strong>الاسم:</strong><br>
+            <span style="font-size: 1.1rem; font-weight: 600;">${client.fullName || '-'}</span>
           </div>
         </div>
-        <div class="row" style="gap: 2rem; margin-top: 1rem;">
-          <div class="col">
-            <strong>الهاتف:</strong><br>
-            ${client.phone}
-          </div>
-          <div class="col">
-            <strong>الدولة:</strong><br>
-            ${client.country}
-          </div>
-          <div class="col">
-            <strong>الديانة:</strong><br>
-            ${client.religion || 'غير محدد'}
+        
+        ${field('البريد الإلكتروني', client.email)}
+        ${field('الهاتف', client.phone)}
+        ${field('الدولة', client.country)}
+        ${field('الديانة', client.religion)}
+        ${field('تاريخ التسجيل', formatDate(client.registrationDate || client.createdAt))}
+        
+        <!-- Body Info -->
+        <div class="info-section">
+          <h4>📊 البيانات الجسدية</h4>
+          ${field('النوع', client.gender)}
+          ${field('تاريخ الميلاد', client.birthDate)}
+          ${field('الوزن', client.weight, ' كجم')}
+          ${field('الطول', client.height, ' سم')}
+          ${field('الوظيفة', client.job)}
+        </div>
+        
+        <!-- Goal -->
+        <div class="info-section">
+          <h4>🎯 الأهداف</h4>
+          ${field('الهدف من الاشتراك', client.goal)}
+          ${field('سبب الاشتراك', client.joiningReason)}
+        </div>
+        
+        <!-- Health -->
+        <div class="info-section">
+          <h4>🏥 الحالة الصحية</h4>
+          ${field('مشاكل صحية', client.healthIssues)}
+          ${field('تحاليل مؤخراً', client.bloodTestsDone)}
+          ${field('أدوية', client.medications)}
+          ${field('إصابات', client.injuries)}
+          ${field('مدخن', client.isSmoker)}
+          ${field('حساسية طعام', client.foodAllergies)}
+        </div>
+        
+        <!-- Diet -->
+        <div class="info-section">
+          <h4>🥗 النظام الغذائي</h4>
+          ${field('نظام غذائي سابق', client.previousDiet)}
+          ${field('أسباب عدم الالتزام', client.failureReasons)}
+          ${field('طبيعة اليوم والمجهود', client.activityLevel)}
+          ${field('منبهات (شاي/قهوة)', client.caffeineIntake)}
+          ${field('عدد الوجبات', client.mealsCount)}
+          ${field('الميزانية', client.budget)}
+          ${field('طعام لا يحبه', client.dislikedFood)}
+          ${field('البروتين المفضل', client.preferredProtein)}
+          ${field('الكربوهيدرات المفضلة', client.preferredCarbs)}
+          ${field('الدهون المفضلة', client.preferredFats)}
+          ${field('نوع النظام', client.dietType)}
+          ${field('فيتامينات', client.vitaminsRequested)}
+        </div>
+        
+        <!-- Training -->
+        <div class="info-section">
+          <h4>🏋️ التدريب</h4>
+          ${field('خبرة التمرين', client.trainingExperience)}
+          ${field('مدة ممارسة الحديد', client.gymDuration)}
+          ${field('رياضة أخرى', client.otherSports)}
+          ${field('مكان التمرين', client.trainingPlace)}
+          ${field('الأدوات المتاحة', client.availableTools)}
+          ${field('عدد أيام التمرين', client.trainingDays)}
+          ${field('الأيام المتاحة', client.availableDays)}
+          ${field('تمارين تسبب ألم', client.painfulExercises)}
+          ${field('الكارديو المفضل', client.preferredCardio)}
+          ${field('الخطوات اليومية', client.dailySteps)}
+          ${field('تجربة الأونلاين', client.onlineCoachingExperience)}
+        </div>
+        
+        <!-- Notes -->
+        ${client.notes ? `
+        <div class="info-section">
+          <h4>📝 ملاحظات</h4>
+          <div style="background: var(--bg-glass); padding: 1rem; border-radius: var(--radius-md);">
+            ${client.notes}
           </div>
         </div>
-        <div style="margin-top: 1rem;">
-          <strong>تاريخ التسجيل:</strong> ${formatDate(client.registrationDate)}
-        </div>
+        ` : ''}
       `;
-    }
-
-    function displaySubscriptionInfo(data) {
-      const container = document.getElementById('subscription-info');
-
-      if (!data.activeSubscription) {
-        container.innerHTML = '<p style="color: var(--text-muted);">لا يوجد اشتراك نشط حالياً</p>';
-        return;
-      }
-
-      const sub = data.activeSubscription;
-      const days = data.daysRemaining;
-
-      container.innerHTML = `
-        <div style="padding: 1rem; background: var(--bg-glass); border-radius: var(--radius-md);">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-            <div>
-              <h3 style="margin: 0;">${sub.package}</h3>
-              <p style="margin: 0.25rem 0 0 0; color: var(--text-muted);">${formatCurrency(sub.amount, sub.currency)}</p>
-            </div>
-            ${getStatusBadge(data.subscriptionStatus)}
-          </div>
-          <div class="row" style="gap: 1rem;">
-            <div class="col">
-              <strong>يبدأ من:</strong><br>
-              ${formatDate(sub.startDate)}
-            </div>
-            <div class="col">
-              <strong>ينتهي في:</strong><br>
-              ${formatDate(sub.endDate)}
-            </div>
-            <div class="col">
-              <strong>الأيام المتبقية:</strong><br>
-              <span style="font-size: 1.5rem; font-weight: 700; color: ${days <= 7 ? 'var(--accent-warning)' : 'var(--accent-success)'};">
-                ${days}
-              </span>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function displaySubscriptionHistory(data) {
-      const container = document.getElementById('subscription-history');
-
-      if (data.subscriptions.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted);">لا يوجد سجل اشتراكات</p>';
-        return;
-      }
-
-      container.innerHTML = data.subscriptions.map(sub => {
-        const status = db.getSubscriptionStatus(sub);
-        return `
-          <div style="padding: 0.75rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong>${sub.package}</strong> - ${formatCurrency(sub.amount, sub.currency)}
-                <div style="font-size: 0.85rem; color: var(--text-muted);">
-                  ${formatDate(sub.startDate)} → ${formatDate(sub.endDate)}
-                </div>
-              </div>
-              ${getStatusBadge(status)}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function displayPlans(data) {
-      const container = document.getElementById('plans-info');
-
-      if (data.plans.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted);">لم يتم تخصيص أي خطط بعد</p>';
-        return;
-      }
-
-      container.innerHTML = data.plans.map(plan => {
-        return `
-          <div style="padding: 1rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-              <div>
-                <strong>خطة ${plan.planId}</strong>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
-                  المدة: ${plan.duration} يوم • تاريخ الإنشاء: ${formatDate(plan.createdAt)}
-                </div>
-                ${plan.notes ? `<div style="margin-top: 0.5rem; font-size: 0.9rem;">${plan.notes}</div>` : ''}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function displayUpdates(data) {
-      const container = document.getElementById('updates-info');
-
-      if (data.updates.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted);">لا يوجد سجل متابعة</p>';
-        return;
-      }
-
-      container.innerHTML = data.updates.map(update => {
-        return `
-          <div style="padding: 1rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-              <strong>نسبة الالتزام: ${update.compliancePercentage}%</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">${formatDate(update.createdAt)}</span>
-            </div>
-            ${update.dietFeedback ? `<div style="margin-top: 0.5rem;"><strong>ملاحظات النظام الغذائي:</strong> ${update.dietFeedback}</div>` : ''}
-            ${update.workoutFeedback ? `<div style="margin-top: 0.5rem;"><strong>ملاحظات التدريب:</strong> ${update.workoutFeedback}</div>` : ''}
-            ${update.currentStatus ? `<div style="margin-top: 0.5rem;"><strong>الحالة الحالية:</strong> ${update.currentStatus}</div>` : ''}
-          </div>
-        `;
-      }).join('');
     }
 
     // Allow Enter key to search
