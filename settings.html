@@ -184,13 +184,13 @@
             }
         });
 
-        // Test API Connection
+        // Test API Connection (Clients)
         document.getElementById('test-api-btn').addEventListener('click', async function () {
             const url = document.getElementById('sheetsApiUrl').value.trim();
             const testBtn = this;
 
             if (!url) {
-                showAlert('يرجى إدخال الرابط أولاً لاختباره', 'warning');
+                showAlert('يرجى إدخال رابط العملاء أولاً لاختباره', 'warning');
                 return;
             }
 
@@ -203,10 +203,10 @@
 
                 const result = await response.json();
 
-                if (result.status === 'success' || result.success === true) {
-                    showAlert('تم الاتصال بنجاح! الرابط يعمل بشكل صحيح ✅', 'success');
+                if (result.success === true && result.clients) {
+                    showAlert(`✅ اتصال العملاء ناجح! (${result.clients.length} عميل)`, 'success');
                 } else {
-                    showAlert('تم الاتصال ولكن الاستجابة غير متوقعة. تأكد من إعداد السكربت ⚠️', 'warning');
+                    showAlert('تم الاتصال ولكن الاستجابة غير متوقعة ⚠️', 'warning');
                 }
 
             } catch (error) {
@@ -214,7 +214,41 @@
                 showAlert('فشل الاتصال: ' + error.message + ' ❌', 'danger');
             } finally {
                 testBtn.disabled = false;
-                testBtn.innerHTML = '🔌 اختبار الاتصال';
+                testBtn.innerHTML = '🔌 اختبار اتصال العملاء';
+            }
+        });
+
+        // Test Sales API Connection
+        document.getElementById('test-sales-api-btn').addEventListener('click', async function () {
+            const url = document.getElementById('salesApiUrl').value.trim();
+            const testBtn = this;
+
+            if (!url) {
+                showAlert('يرجى إدخال رابط المبيعات أولاً لاختباره', 'warning');
+                return;
+            }
+
+            testBtn.disabled = true;
+            testBtn.innerHTML = '⏳ جاري الاختبار...';
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(response.statusText);
+
+                const result = await response.json();
+
+                if (result.success === true && result.sales) {
+                    showAlert(`✅ اتصال المبيعات ناجح! (${result.sales.length} عملية بيع)`, 'success');
+                } else {
+                    showAlert('تم الاتصال ولكن الاستجابة غير متوقعة ⚠️', 'warning');
+                }
+
+            } catch (error) {
+                console.error('Test error:', error);
+                showAlert('فشل الاتصال: ' + error.message + ' ❌', 'danger');
+            } finally {
+                testBtn.disabled = false;
+                testBtn.innerHTML = '🔌 اختبار اتصال المبيعات';
             }
         });
 
