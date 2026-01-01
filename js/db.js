@@ -411,13 +411,13 @@ class Database {
   async addSubscription(subscriptionData) {
     // Generate unique ID if not provided
     const subId = subscriptionData.id || `SUB-${Date.now()}`;
-    
+
     // Check for duplicate by clientCode + startDate
     const snapshot = await this.subscriptionsCol
       .where("clientCode", "==", subscriptionData.clientCode)
       .where("startDate", "==", subscriptionData.startDate)
       .get();
-    
+
     if (!snapshot.empty) {
       // Update existing
       const docRef = snapshot.docs[0].ref;
@@ -454,7 +454,10 @@ class Database {
 
   async getAllSubscriptions() {
     const snapshot = await this.subscriptionsCol.get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map(doc => ({
+      ...doc.data(),
+      id: doc.id  // This MUST come after spread to override any internal 'id' field
+    }));
   }
 
   async syncSalesFromGoogleSheets() {
@@ -552,7 +555,7 @@ class Database {
 
     for (const [keyword, dbKey] of Object.entries(keywordMap)) {
       if (saleData[dbKey]) continue;
-      
+
       for (const sheetKey of sheetKeys) {
         if (sheetKey.includes(keyword)) {
           const value = sheetData[sheetKey];
