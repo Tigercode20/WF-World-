@@ -134,51 +134,69 @@
     <script src="js/ui.js"></script>
     <script>
         // Initialize page
-        document.addEventListener('DOMContentLoaded', function () {
-            loadClients();
-            loadPackages();
-            loadCurrencies();
-            loadPaymentMethods();
+        document.addEventListener('DOMContentLoaded', async function () {
+            await loadClients();
+            await loadPackages();
             loadRecentSales();
         });
 
         // Load clients into dropdown
-        function loadClients() {
-            const clients = db.getAllClients();
-            const select = document.getElementById('clientCode');
+        async function loadClients() {
+            try {
+                const clients = await db.getAllClients();
+                const select = document.getElementById('clientCode');
+                select.innerHTML = '<option value="">-- اختر العميل --</option>';
 
-            clients.forEach(client => {
-                const option = document.createElement('option');
-                option.value = client.clientCode;
-                option.textContent = `${client.fullName} (${client.clientCode})`;
-                select.appendChild(option);
-            });
+                clients.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.clientCode;
+                    option.textContent = `${client.fullName} (${client.clientCode})`;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error('Error loading clients:', e);
+            }
         }
 
         // Load packages
-        function loadPackages() {
-            const settings = db.getSettings();
-            const select = document.getElementById('package');
+        async function loadPackages() {
+            try {
+                const settings = await db.getSettings();
+                const select = document.getElementById('package');
+                select.innerHTML = '<option value="">-- اختر الباقة --</option>';
 
-            settings.packages.forEach(pkg => {
-                const option = document.createElement('option');
-                option.value = pkg.name;
-                option.dataset.duration = pkg.duration;
-                option.textContent = pkg.name;
-                select.appendChild(option);
-            });
-        }
+                if (settings.packages) {
+                    settings.packages.forEach(pkg => {
+                        const option = document.createElement('option');
+                        option.value = pkg.name;
+                        option.dataset.duration = pkg.duration;
+                        option.textContent = `${pkg.name} (${pkg.duration} يوم)`;
+                        select.appendChild(option);
+                    });
+                }
 
-        // Load currencies
-        function loadCurrencies() {
-            const settings = db.getSettings();
-            populateSelect(document.getElementById('currency'), settings.currencies);
-        }
+                // Load currencies
+                const currencySelect = document.getElementById('currency');
+                currencySelect.innerHTML = `
+                    <option value="">-- اختر --</option>
+                    <option value="EGP">جنيه مصري (EGP)</option>
+                    <option value="USD">دولار (USD)</option>
+                    <option value="SAR">ريال سعودي (SAR)</option>
+                    <option value="AED">درهم إماراتي (AED)</option>
+                `;
 
-        // Load payment methods
-        function loadPaymentMethods() {
-            const settings = db.getSettings();
-            populateSelect(document.getElementById('paymentMethod'), settings.paymentMethods);
+                // Load payment methods
+                const paymentSelect = document.getElementById('paymentMethod');
+                paymentSelect.innerHTML = `
+                    <option value="">-- اختر --</option>
+                    <option value="Vodafone Cash">Vodafone Cash</option>
+                    <option value="InstaPay">InstaPay</option>
+                    <option value="Bank Transfer">تحويل بنكي</option>
+                    <option value="Cash">نقدي</option>
+                `;
+            } catch (e) {
+                console.error('Error loading packages:', e);
+            }
         }
 
         // Show package info
@@ -207,7 +225,7 @@
 
             if (packageSelect.value && amount && currency) {
                 const selected = packageSelect.options[packageSelect.selectedIndex];
-                const duration = parseInt(selected.dataset.duration);
+                const duration = parseInt(selected.dataset.duration || 30);
 
                 const startDate = new Date();
                 const endDate = new Date(startDate);
@@ -218,9 +236,9 @@
 
                 content.innerHTML = `
           📦 الباقة: <strong>${packageSelect.value}</strong><br>
-          💰 المبلغ: <strong>${formatCurrency(parseFloat(amount), currency)}</strong><br>
-          📅 يبدأ من: <strong>${formatDate(startDate.toISOString())}</strong><br>
-          📅 ينتهي في: <strong>${formatDate(endDate.toISOString())}</strong><br>
+          💰 المبلغ: <strong>${amount} ${currency}</strong><br>
+          📅 يبدأ من: <strong>${startDate.toLocaleDateString('ar-EG')}</strong><br>
+          📅 ينتهي في: <strong>${endDate.toLocaleDateString('ar-EG')}</strong><br>
           ⏱️ المدة: <strong>${duration} يوم</strong>
         `;
 
@@ -231,80 +249,101 @@
         }
 
         // Form submission
-        document.getElementById('sales-form').addEventListener('submit', function (e) {
+        document.getElementById('sales-form').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const formData = new FormData(this);
+            const packageSelect = document.getElementById('package');
+            const selected = packageSelect.options[packageSelect.selectedIndex];
+            const duration = parseInt(selected.dataset.duration || 30);
+
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + duration);
+
             const subscriptionData = {
-                type: formData.get('type'),
+                subscriptionType: formData.get('type'),
                 clientCode: formData.get('clientCode'),
                 package: formData.get('package'),
-                amount: formData.get('amount'),
+                amount: parseFloat(formData.get('amount')),
                 currency: formData.get('currency'),
-                paymentMethod: formData.get('paymentMethod')
+                receiveAccount: formData.get('paymentMethod'),
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                duration: duration,
+                createdAt: new Date().toISOString()
             };
 
             // Validate
-            if (!subscriptionData.type || !subscriptionData.clientCode || !subscriptionData.package ||
-                !subscriptionData.amount || !subscriptionData.currency || !subscriptionData.paymentMethod) {
+            if (!subscriptionData.subscriptionType || !subscriptionData.clientCode || !subscriptionData.package ||
+                !subscriptionData.amount || !subscriptionData.currency || !subscriptionData.receiveAccount) {
                 showAlert('يرجى ملء جميع الحقول', 'warning');
                 return;
             }
 
-            showLoading('جاري تسجيل الاشتراك...');
+            try {
+                const client = await db.getClient(subscriptionData.clientCode);
+                subscriptionData.clientName = client ? client.fullName : '';
+                subscriptionData.email = client ? client.email : '';
+                subscriptionData.phone = client ? client.phone : '';
 
-            setTimeout(() => {
-                try {
-                    const newSub = db.addSubscription(subscriptionData);
-                    const client = db.getClient(subscriptionData.clientCode);
+                await db.addSubscription(subscriptionData);
 
-                    hideLoading();
-                    showAlert(`تم تسجيل الاشتراك بنجاح للعميل: ${client.fullName}`, 'success');
+                showAlert(`تم تسجيل الاشتراك بنجاح للعميل: ${client.fullName}`, 'success');
 
-                    this.reset();
-                    document.getElementById('subscription-preview').style.display = 'none';
-                    loadRecentSales();
+                this.reset();
+                document.getElementById('subscription-preview').style.display = 'none';
+                loadRecentSales();
 
-                } catch (error) {
-                    hideLoading();
-                    showAlert('حدث خطأ: ' + error.message, 'danger');
-                }
-            }, 500);
+            } catch (error) {
+                showAlert('حدث خطأ: ' + error.message, 'danger');
+            }
         });
 
         // Load recent sales
-        function loadRecentSales() {
-            const sales = db.getAllSubscriptions().slice(-5).reverse();
+        async function loadRecentSales() {
             const container = document.getElementById('recent-sales');
+            container.innerHTML = '<p style="color: var(--text-muted);">جاري التحميل...</p>';
 
-            if (sales.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted);">لم يتم تسجيل أي مبيعات بعد</p>';
-                return;
-            }
+            try {
+                const sales = await db.getAllSubscriptions();
+                const recentSales = sales.slice(-10).reverse();
 
-            container.innerHTML = sales.map(sale => {
-                const client = db.getClient(sale.clientCode);
-                const status = db.getSubscriptionStatus(sale);
+                if (recentSales.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">لم يتم تسجيل أي مبيعات بعد</p>';
+                    return;
+                }
 
-                return `
+                container.innerHTML = recentSales.map(sale => {
+                    const endDate = sale.endDate ? new Date(sale.endDate) : null;
+                    const isActive = endDate ? endDate > new Date() : false;
+                    const statusBadge = isActive
+                        ? '<span style="color: #00c853; font-weight: 600;">● نشط</span>'
+                        : '<span style="color: #ff5252; font-weight: 600;">● منتهي</span>';
+
+                    return `
           <div style="padding: 0.75rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <strong>${client ? client.fullName : sale.clientCode}</strong>
+                <strong>${sale.clientName || sale.clientCode}</strong>
                 <div style="font-size: 0.85rem; color: var(--text-muted);">
-                  ${sale.package} • ${formatCurrency(sale.amount, sale.currency)} • ${sale.paymentMethod}
+                  ${sale.package || 'باقة'} • ${sale.amount || 0} ${sale.currency || 'EGP'} • ${sale.receiveAccount || ''}
                 </div>
               </div>
               <div style="text-align: left;">
-                ${getStatusBadge(status)}
+                ${statusBadge}
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                  ${formatDate(sale.createdAt)}
+                  ${sale.startDate ? new Date(sale.startDate).toLocaleDateString('ar-EG') : ''}
                 </div>
               </div>
             </div>
           </div>
         `;
-            }).join('');
+                }).join('');
+            } catch (e) {
+                console.error('Error loading sales:', e);
+                container.innerHTML = '<p style="color: var(--text-muted);">فشل تحميل المبيعات</p>';
+            }
         }
     </script>
 </body>
