@@ -144,20 +144,44 @@
 
       try {
         const settings = await window.db.getSettings();
-        if (!(settings.autoSync === true && settings.sheetsApiUrl)) {
+        if (settings.autoSync !== true) {
           console.log('ℹ️ المزامنة التلقائية غير مفعّلة');
           return;
         }
 
         if (showIndicator) showSyncIndicator();
-        console.log('🔄 جاري المزامنة...');
 
-        const result = await window.db.syncFromGoogleSheets();
-        console.log('✅ تمت المزامنة:', result.message);
+        let messages = [];
+
+        // Sync Clients
+        if (settings.sheetsApiUrl) {
+          console.log('🔄 جاري مزامنة العملاء...');
+          updateSyncIndicator('🔄 جاري مزامنة العملاء...');
+          try {
+            const result = await window.db.syncFromGoogleSheets();
+            console.log('✅ العملاء:', result.message);
+            messages.push('👥 ' + result.message);
+          } catch (e) {
+            console.error('❌ فشلت مزامنة العملاء:', e);
+          }
+        }
+
+        // Sync Sales
+        if (settings.salesApiUrl) {
+          console.log('🔄 جاري مزامنة المبيعات...');
+          updateSyncIndicator('🔄 جاري مزامنة المبيعات...');
+          try {
+            const result = await window.db.syncSalesFromGoogleSheets();
+            console.log('✅ المبيعات:', result.message);
+            messages.push('💰 ' + result.message);
+          } catch (e) {
+            console.error('❌ فشلت مزامنة المبيعات:', e);
+          }
+        }
 
         if (showIndicator) {
-          updateSyncIndicator('✅ ' + result.message);
-          setTimeout(hideSyncIndicator, 3000);
+          updateSyncIndicator('✅ ' + (messages.length ? messages.join(' | ') : 'لا توجد روابط API'));
+          setTimeout(hideSyncIndicator, 4000);
         }
 
         // Refresh stats after sync

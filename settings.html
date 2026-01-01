@@ -46,26 +46,38 @@
                     <div class="alert alert-info"
                         style="background: rgba(66, 153, 225, 0.1); border-left: 4px solid var(--primary); margin-bottom: 1.5rem;">
                         <p style="margin: 0;">
-                            <strong>ملاحظة هامة:</strong> لتفعيل المزامنة مع Google Forms، يجب عليك إنشاء Google Apps
-                            Script
-                            وربطه بملف الإكسيل الخاص بالردود.
+                            <strong>ملاحظة:</strong> أضف روابط Google Apps Script لكل شيت (العملاء والمبيعات).
                         </p>
                     </div>
 
-                    <div class="form-group">
-                        <label for="sheetsApiUrl" class="form-label">رابط Google Apps Script (Web App URL)</label>
+                    <!-- Clients API -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="sheetsApiUrl" class="form-label">👥 رابط مزامنة العملاء (Clients API)</label>
                         <input type="url" id="sheetsApiUrl" name="sheetsApiUrl" class="form-control"
                             placeholder="https://script.google.com/macros/s/..." dir="ltr">
                         <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
-                            قم بلصق رابط الـ Web App الذي حصلت عليه بعد نشر السكربت.
+                            رابط شيت تسجيل العملاء (Client Form Responses)
+                        </small>
+                    </div>
+
+                    <!-- Sales API -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="salesApiUrl" class="form-label">💰 رابط مزامنة المبيعات (Sales API)</label>
+                        <input type="url" id="salesApiUrl" name="salesApiUrl" class="form-control"
+                            placeholder="https://script.google.com/macros/s/..." dir="ltr">
+                        <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                            رابط شيت المبيعات (Sales Form Responses)
                         </small>
                     </div>
 
                     <div class="d-flex align-items-center gap-2 mt-3">
                         <button type="button" id="test-api-btn" class="btn btn-outline" style="font-size: 0.9rem;">
-                            🔌 اختبار الاتصال
+                            🔌 اختبار اتصال العملاء
                         </button>
-                        <div id="api-status"></div>
+                        <button type="button" id="test-sales-api-btn" class="btn btn-outline"
+                            style="font-size: 0.9rem;">
+                            🔌 اختبار اتصال المبيعات
+                        </button>
                     </div>
                 </div>
 
@@ -121,15 +133,13 @@
     <script>
         // No need for async load check since scripts are synchronous now (unless defer/async used)
         async function loadSettings() {
-            // ...
-
             try {
                 const currentSettings = await window.db.getSettings();
                 document.getElementById('sheetsApiUrl').value = currentSettings.sheetsApiUrl || '';
+                document.getElementById('salesApiUrl').value = currentSettings.salesApiUrl || '';
                 document.getElementById('autoSync').checked = currentSettings.autoSync === true;
             } catch (e) {
                 console.error("Failed to load settings", e);
-                // Don't alert immediately on load, might be first run
             }
         }
 
@@ -151,10 +161,12 @@
 
             try {
                 const autoSync = document.getElementById('autoSync').checked;
-                
+                const salesApiUrl = document.getElementById('salesApiUrl').value.trim();
+
                 // Update settings in Cloud DB
                 await window.db.updateSettings({
                     sheetsApiUrl: sheetsApiUrl,
+                    salesApiUrl: salesApiUrl,
                     autoSync: autoSync
                 });
 

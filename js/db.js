@@ -405,6 +405,185 @@ class Database {
 
     return clientData;
   }
+
+  // ==================== SALES/SUBSCRIPTIONS SYNC ====================
+
+  async addSubscription(subscriptionData) {
+    // Generate unique ID if not provided
+    const subId = subscriptionData.id || `SUB-${Date.now()}`;
+    
+    // Check for duplicate by clientCode + startDate
+    const snapshot = await this.subscriptionsCol
+      .where("clientCode", "==", subscriptionData.clientCode)
+      .where("startDate", "==", subscriptionData.startDate)
+      .get();
+    
+    if (!snapshot.empty) {
+      // Update existing
+      const docRef = snapshot.docs[0].ref;
+      await docRef.update(subscriptionData);
+      return { id: snapshot.docs[0].id, ...subscriptionData };
+    }
+
+    const newSub = {
+      id: subId,
+      clientCode: subscriptionData.clientCode || '',
+      clientName: subscriptionData.clientName || '',
+      email: subscriptionData.email || '',
+      phone: subscriptionData.phone || '',
+      subscriptionType: subscriptionData.subscriptionType || '',
+      package: subscriptionData.package || '',
+      amount: subscriptionData.amount || 0,
+      currency: subscriptionData.currency || 'EGP',
+      receiveAccount: subscriptionData.receiveAccount || '',
+      startDate: subscriptionData.startDate || '',
+      duration: subscriptionData.duration || 1,
+      bonusDuration: subscriptionData.bonusDuration || 0,
+      endDate: subscriptionData.endDate || '',
+      paymentScreenshot: subscriptionData.paymentScreenshot || '',
+      chatScreenshot: subscriptionData.chatScreenshot || '',
+      trainingPlanSent: subscriptionData.trainingPlanSent || '',
+      notes: subscriptionData.notes || '',
+      createdAt: subscriptionData.createdAt || new Date().toISOString(),
+      status: 'active'
+    };
+
+    const docRef = await this.subscriptionsCol.add(newSub);
+    return { ...newSub, id: docRef.id };
+  }
+
+  async getAllSubscriptions() {
+    const snapshot = await this.subscriptionsCol.get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  async syncSalesFromGoogleSheets() {
+    const settings = await this.getSettings();
+
+    if (!settings.salesApiUrl) {
+      throw new Error('لم يتم تكوين رابط Sales API. يرجى إضافته في الإعدادات.');
+    }
+
+    try {
+      const response = await fetch(settings.salesApiUrl);
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      const result = await response.json();
+
+      if (!result.success) throw new Error(result.error || 'Unknown error');
+
+      const sheetSales = result.sales || [];
+      let addedCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      for (let i = 0; i < sheetSales.length; i++) {
+        const sheetSale = sheetSales[i];
+        try {
+          const saleData = this.mapSheetDataToSale(sheetSale);
+
+          if (!saleData.clientCode) {
+            skippedCount++;
+            continue;
+          }
+
+          // Check existence by clientCode + startDate
+          const snapshot = await this.subscriptionsCol
+            .where("clientCode", "==", saleData.clientCode)
+            .where("startDate", "==", saleData.startDate)
+            .get();
+
+          if (!snapshot.empty) {
+            await snapshot.docs[0].ref.update(saleData);
+            updatedCount++;
+          } else {
+            await this.addSubscription(saleData);
+            addedCount++;
+          }
+        } catch (error) {
+          console.error('Error processing sale:', sheetSale, error);
+          skippedCount++;
+        }
+      }
+
+      await this.updateSettings({ lastSalesSyncDate: new Date().toISOString() });
+
+      let message = `تمت مزامنة المبيعات: +${addedCount} جديد، 🔄 ${updatedCount} تحديث.`;
+      if (skippedCount > 0) message += ` (تخطي ${skippedCount})`;
+
+      return {
+        success: true,
+        total: sheetSales.length,
+        added: addedCount,
+        updated: updatedCount,
+        skipped: skippedCount,
+        message: message
+      };
+
+    } catch (error) {
+      console.error('Sales sync error:', error);
+      throw new Error(`فشلت مزامنة المبيعات: ${error.message}`);
+    }
+  }
+
+  mapSheetDataToSale(sheetData) {
+    // Keyword mapping for sales columns
+    const keywordMap = {
+      'Timestamp': 'createdAt',
+      'Email': 'email',
+      'Subscription Type': 'subscriptionType',
+      'Client Code': 'clientCode',
+      'Client Name': 'clientName',
+      'Phone': 'phone',
+      'Amount': 'amount',
+      'Currency': 'currency',
+      'Receive Account': 'receiveAccount',
+      'Package': 'package',
+      'Start Date': 'startDate',
+      'Duration': 'duration',
+      'Bonus': 'bonusDuration',
+      'Screenshot': 'paymentScreenshot',
+      'سكرين شوت': 'chatScreenshot',
+      'Training plan': 'trainingPlanSent',
+      'Notes': 'notes'
+    };
+
+    const saleData = {};
+    const sheetKeys = Object.keys(sheetData);
+
+    for (const [keyword, dbKey] of Object.entries(keywordMap)) {
+      if (saleData[dbKey]) continue;
+      
+      for (const sheetKey of sheetKeys) {
+        if (sheetKey.includes(keyword)) {
+          const value = sheetData[sheetKey];
+          if (value !== undefined && value !== '' && value !== null) {
+            saleData[dbKey] = value;
+            break;
+          }
+        }
+      }
+    }
+
+    // Parse dates
+    if (saleData.createdAt) {
+      saleData.createdAt = this.parseFlexibleDate(saleData.createdAt);
+    }
+    if (saleData.startDate) {
+      saleData.startDate = this.parseFlexibleDate(saleData.startDate);
+    }
+
+    // Calculate end date
+    if (saleData.startDate && saleData.duration) {
+      const start = new Date(saleData.startDate);
+      const totalMonths = parseInt(saleData.duration) + parseInt(saleData.bonusDuration || 0);
+      start.setMonth(start.getMonth() + totalMonths);
+      saleData.endDate = start.toISOString();
+    }
+
+    console.log('📤 Mapped sale:', saleData.clientCode, '| Fields:', Object.keys(saleData).length);
+
+    return saleData;
+  }
 }
 
 const dbInstance = new Database();
