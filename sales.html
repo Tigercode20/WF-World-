@@ -118,8 +118,13 @@
 
         <!-- Recent Sales -->
         <div class="card mt-4">
-            <h3>💰 آخر المبيعات</h3>
-            <div id="recent-sales" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">💰 آخر المبيعات</h3>
+                <button id="sync-sales-btn" class="btn btn-primary" style="font-size: 0.85rem;" onclick="syncSales()">
+                    🔄 مزامنة من Google Sheets
+                </button>
+            </div>
+            <div id="recent-sales">
                 <!-- Will be loaded dynamically -->
             </div>
         </div>
@@ -343,6 +348,24 @@
             } catch (e) {
                 console.error('Error loading sales:', e);
                 container.innerHTML = '<p style="color: var(--text-muted);">فشل تحميل المبيعات</p>';
+            }
+        }
+
+        // Sync sales from Google Sheets
+        async function syncSales() {
+            const btn = document.getElementById('sync-sales-btn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ جاري المزامنة...';
+
+            try {
+                const result = await db.syncSalesFromGoogleSheets();
+                showAlert(result.message, 'success');
+                await loadRecentSales();
+            } catch (error) {
+                showAlert('فشلت المزامنة: ' + error.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 مزامنة من Google Sheets';
             }
         }
     </script>

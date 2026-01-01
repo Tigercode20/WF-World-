@@ -117,22 +117,38 @@
 
             noResults.style.display = 'none';
 
-            // Note: We need to handle subscriptions async too if we want status
-            // For now, simpler list first. Or we fetch subs in batch?
-            // Let's iterate and await or simplify status.
-            // db.js doesn't have `getActiveSubscription` refactored yet perfectly or it's async now?
-            // Actually I didn't verify if I refactored `getActiveSubscription`. I only did Client Ops.
-            // I should assume status is 'active' or basic for now, or update db.js to include it.
-            // Let's skip subscription status for a moment or fetch it.
+            // Get all subscriptions once
+            let allSubs = [];
+            try {
+                allSubs = await window.db.getAllSubscriptions();
+            } catch (e) {
+                console.log('Could not load subscriptions for status check');
+            }
 
-            tbody.innerHTML = clients.map(client => `
+            // Build client status map
+            const now = new Date();
+            const clientStatusMap = {};
+            allSubs.forEach(sub => {
+                const endDate = sub.endDate ? new Date(sub.endDate) : null;
+                if (endDate && endDate > now) {
+                    clientStatusMap[sub.clientCode] = 'active';
+                }
+            });
+
+            tbody.innerHTML = clients.map(client => {
+                const hasActiveSubscription = clientStatusMap[client.clientCode] === 'active';
+                const statusBadge = hasActiveSubscription
+                    ? '<span class="badge badge-success">نشط</span>'
+                    : '<span class="badge" style="background: rgba(158, 158, 158, 0.2); color: #9e9e9e;">بدون اشتراك</span>';
+
+                return `
               <tr>
                 <td><strong>${client.clientCode}</strong></td>
                 <td>${client.fullName}</td>
-                <td>${client.email}</td>
-                <td>${client.phone}</td>
-                <td>${client.country}</td>
-                <td><span class="badge badge-success">نشط</span></td> 
+                <td>${client.email || '-'}</td>
+                <td>${client.phone || '-'}</td>
+                <td>${client.country || '-'}</td>
+                <td>${statusBadge}</td> 
                 <td>${formatDate(client.registrationDate)}</td>
                 <td>
                   <div style="display: flex; gap: 0.25rem;">
@@ -145,7 +161,8 @@
                   </div>
                 </td>
               </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // Search functionality
