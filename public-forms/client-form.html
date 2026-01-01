@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل عميل جديد - WF World</title>
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --accent: #764ba2;
+            --success: #00c853;
+            --error: #ff5252;
+            --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-muted: #666666;
+            --border: #e0e0e0;
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 2rem 0;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .form-label .required {
+            color: var(--error);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .radio-group,
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .radio-option,
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .radio-option:hover,
+        .checkbox-option:hover {
+            border-color: var(--primary);
+        }
+
+        .radio-option input:checked+span,
+        .checkbox-option input:checked+span {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .radio-option:has(input:checked),
+        .checkbox-option:has(input:checked) {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="radio"],
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--bg);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-preview {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .file-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            border: 2px solid var(--success);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert-success {
+            background: rgba(0, 200, 83, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .success-page {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .success-page .icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+        }
+
+        .success-page h2 {
+            color: var(--success);
+            margin-bottom: 1rem;
+        }
+
+        .client-code {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: rgba(102, 126, 234, 0.1);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+
+            .radio-group,
+            .checkbox-group {
+                flex-direction: column;
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">⚡</div>
+            <h1>WF World</h1>
+            <p>نموذج تسجيل عميل جديد</p>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <form id="client-form">
+            <!-- Personal Info -->
+            <div class="card">
+                <h2 class="section-title">👤 البيانات الشخصية</h2>
+
+                <div class="form-group">
+                    <label class="form-label">الاسم بالكامل <span class="required">*</span></label>
+                    <input type="text" name="fullName" class="form-control" required placeholder="أدخل اسمك الكامل">
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label class="form-label">البريد الإلكتروني <span class="required">*</span></label>
+                        <input type="email" name="email" class="form-control" required placeholder="example@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">رقم الهاتف (واتساب) <span class="required">*</span></label>
+                        <input type="tel" name="phone" class="form-control" required placeholder="+20 xxx xxx xxxx">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label class="form-label">الدولة <span class="required">*</span></label>
+                        <select name="country" class="form-control" required>
+                            <option value="">-- اختر --</option>
+                            <option value="مصر">مصر</option>
+                            <option value="السعودية">السعودية</option>
+                            <option value="الإمارات">الإمارات</option>
+                            <option value="الكويت">الكويت</option>
+                            <option value="قطر">قطر</option>
+                            <option value="البحرين">البحرين</option>
+                            <option value="عمان">عمان</option>
+                            <option value="الأردن">الأردن</option>
+                            <option value="لبنان">لبنان</option>
+                            <option value="العراق">العراق</option>
+                            <option value="ليبيا">ليبيا</option>
+                            <option value="تونس">تونس</option>
+                            <option value="الجزائر">الجزائر</option>
+                            <option value="المغرب">المغرب</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">الديانة</label>
+                        <select name="religion" class="form-control">
+                            <option value="">-- اختر --</option>
+                            <option value="مسلم">مسلم</option>
+                            <option value="مسيحي">مسيحي</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">النوع <span class="required">*</span></label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="gender" value="ذكر" required>
+                            <span>👨 ذكر</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="gender" value="أنثى">
+                            <span>👩 أنثى</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">تاريخ الميلاد</label>
+                    <input type="date" name="birthDate" class="form-control">
+                </div>
+            </div>
+
+            <!-- Body Info -->
+            <div class="card">
+                <h2 class="section-title">📊 البيانات الجسدية</h2>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label class="form-label">الوزن (كجم) <span class="required">*</span></label>
+                        <input type="number" name="weight" class="form-control" required placeholder="75" min="30"
+                            max="300">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">الطول (سم) <span class="required">*</span></label>
+                        <input type="number" name="height" class="form-control" required placeholder="170" min="100"
+                            max="250">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">الوظيفة / طبيعة العمل</label>
+                    <input type="text" name="job" class="form-control" placeholder="مهندس، طالب، موظف...">
+                </div>
+            </div>
+
+            <!-- Goal -->
+            <div class="card">
+                <h2 class="section-title">🎯 الهدف من الاشتراك</h2>
+
+                <div class="form-group">
+                    <label class="form-label">ما هو هدفك؟ <span class="required">*</span></label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="goal" value="خسارة دهون">
+                            <span>🔥 خسارة دهون</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="goal" value="بناء عضل">
+                            <span>💪 بناء عضل</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="goal" value="تحسين اللياقة">
+                            <span>🏃 تحسين اللياقة</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="goal" value="صحة عامة">
+                            <span>❤️ صحة عامة</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">لماذا اخترت الاشتراك معنا؟</label>
+                    <textarea name="joiningReason" class="form-control"
+                        placeholder="أخبرنا عن سبب اختيارك..."></textarea>
+                </div>
+            </div>
+
+            <!-- Health -->
+            <div class="card">
+                <h2 class="section-title">🏥 الحالة الصحية</h2>
+
+                <div class="form-group">
+                    <label class="form-label">هل تعاني من أي مشاكل صحية؟</label>
+                    <textarea name="healthIssues" class="form-control"
+                        placeholder="سكر، ضغط، قلب، غدة درقية..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">هل تتناول أي أدوية؟</label>
+                    <input type="text" name="medications" class="form-control" placeholder="اذكر الأدوية إن وجدت">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">هل لديك أي إصابات؟</label>
+                    <input type="text" name="injuries" class="form-control" placeholder="إصابات في الظهر، الركبة...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">هل لديك حساسية من أي طعام؟</label>
+                    <input type="text" name="foodAllergies" class="form-control"
+                        placeholder="لاكتوز، جلوتين، مكسرات...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">هل أنت مدخن؟</label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="isSmoker" value="نعم">
+                            <span>نعم</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="isSmoker" value="لا">
+                            <span>لا</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diet -->
+            <div class="card">
+                <h2 class="section-title">🥗 النظام الغذائي</h2>
+
+                <div class="form-group">
+                    <label class="form-label">عدد الوجبات المفضل</label>
+                    <select name="mealsCount" class="form-control">
+                        <option value="">-- اختر --</option>
+                        <option value="2">2 وجبات</option>
+                        <option value="3">3 وجبات</option>
+                        <option value="4">4 وجبات</option>
+                        <option value="5">5 وجبات</option>
+                        <option value="6+">6 وجبات أو أكثر</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">أطعمة لا تحبها</label>
+                    <input type="text" name="dislikedFood" class="form-control" placeholder="بيض، سمك، كبدة...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">البروتين المفضل</label>
+                    <input type="text" name="preferredProtein" class="form-control" placeholder="دجاج، لحم، سمك...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">الميزانية الشهرية للطعام</label>
+                    <input type="text" name="budget" class="form-control" placeholder="1000 جنيه، 500 ريال...">
+                </div>
+            </div>
+
+            <!-- Training -->
+            <div class="card">
+                <h2 class="section-title">🏋️ التدريب</h2>
+
+                <div class="form-group">
+                    <label class="form-label">خبرتك في التمرين</label>
+                    <select name="trainingExperience" class="form-control">
+                        <option value="">-- اختر --</option>
+                        <option value="مبتدئ">مبتدئ (أقل من سنة)</option>
+                        <option value="متوسط">متوسط (1-3 سنوات)</option>
+                        <option value="متقدم">متقدم (أكثر من 3 سنوات)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">مكان التمرين</label>
+                    <select name="trainingPlace" class="form-control">
+                        <option value="">-- اختر --</option>
+                        <option value="جيم">جيم</option>
+                        <option value="منزل">منزل</option>
+                        <option value="جيم ومنزل">جيم ومنزل</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">عدد أيام التمرين المتاحة</label>
+                    <select name="trainingDays" class="form-control">
+                        <option value="">-- اختر --</option>
+                        <option value="2">2 أيام</option>
+                        <option value="3">3 أيام</option>
+                        <option value="4">4 أيام</option>
+                        <option value="5">5 أيام</option>
+                        <option value="6">6 أيام</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Photo -->
+            <div class="card">
+                <h2 class="section-title">📷 صورة شخصية</h2>
+
+                <div class="form-group">
+                    <label class="form-label">ارفع صورة حديثة (اختياري)</label>
+                    <div class="file-upload" onclick="document.getElementById('photo').click()">
+                        <div class="icon">📸</div>
+                        <div>اضغط لرفع صورة</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">JPG, PNG - حد
+                            أقصى 5MB</div>
+                        <input type="file" id="photo" name="photo" accept="image/*">
+                    </div>
+                    <div class="file-preview" id="photo-preview">
+                        <img src="" alt="Preview">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card">
+                <h2 class="section-title">📝 ملاحظات إضافية</h2>
+
+                <div class="form-group">
+                    <label class="form-label">هل لديك أي ملاحظات أخرى تود إخبارنا بها؟</label>
+                    <textarea name="notes" class="form-control"
+                        placeholder="أي معلومات إضافية ترغب في مشاركتها..."></textarea>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="card">
+                <button type="submit" id="submit-btn" class="btn btn-primary">
+                    ✅ إرسال النموذج
+                </button>
+            </div>
+        </form>
+
+        <!-- Loading -->
+        <div id="loading" class="loading card">
+            <div class="spinner"></div>
+            <p>جاري إرسال البيانات...</p>
+        </div>
+
+        <!-- Success -->
+        <div id="success" class="success-page card">
+            <div class="icon">🎉</div>
+            <h2>تم التسجيل بنجاح!</h2>
+            <p>شكراً لك على التسجيل معنا</p>
+            <p><strong>كود العميل الخاص بك:</strong></p>
+            <div class="client-code" id="client-code-display">C0001</div>
+            <p style="color: var(--text-muted); margin-top: 1rem;">احتفظ بهذا الكود للتواصل معنا</p>
+        </div>
+
+        <div class="footer">
+            <p>© 2024 WF World - جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnCPM_7yDYk2w6qe3O6Gn8AYRJlIuRW5Y",
+            authDomain: "wf-world.firebaseapp.com",
+            projectId: "wf-world",
+            storageBucket: "wf-world.firebasestorage.app",
+            messagingSenderId: "396729757865",
+            appId: "1:396729757865:web:babc5f56a37f2d1e1cd69c"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ImgBB API Key (free)
+        const IMGBB_API_KEY = 'e7e0b7c8d3c0b2a1f5e4d3c2b1a0f9e8'; // Replace with your key
+
+        // Preview photo
+        document.getElementById('photo').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('photo-preview').style.display = 'block';
+                    document.getElementById('photo-preview').querySelector('img').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Generate client code
+        async function generateClientCode() {
+            const snapshot = await db.collection('clients').orderBy('createdAt', 'desc').limit(1).get();
+            let lastNum = 0;
+
+            if (!snapshot.empty) {
+                const lastCode = snapshot.docs[0].data().clientCode;
+                const match = lastCode.match(/\d+/);
+                if (match) lastNum = parseInt(match[0]);
+            }
+
+            return `C${String(lastNum + 1).padStart(4, '0')}`;
+        }
+
+        // Upload image to ImgBB
+        async function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                return result.data.url;
+            }
+            throw new Error('فشل رفع الصورة');
+        }
+
+        // Show alert
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Form submission
+        document.getElementById('client-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const form = this;
+            const submitBtn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+
+            // Validate at least one goal
+            const goals = form.querySelectorAll('input[name="goal"]:checked');
+            if (goals.length === 0) {
+                showAlert('يرجى اختيار هدف واحد على الأقل', 'error');
+                return;
+            }
+
+            // Show loading
+            form.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const formData = new FormData(form);
+
+                // Generate client code
+                const clientCode = await generateClientCode();
+
+                // Upload photo if exists
+                let photoUrl = '';
+                const photoFile = document.getElementById('photo').files[0];
+                if (photoFile) {
+                    try {
+                        photoUrl = await uploadImage(photoFile);
+                    } catch (err) {
+                        console.error('Photo upload failed:', err);
+                    }
+                }
+
+                // Collect goals
+                const goalValues = Array.from(goals).map(g => g.value);
+
+                // Build client data
+                const clientData = {
+                    clientCode: clientCode,
+                    fullName: formData.get('fullName'),
+                    email: formData.get('email'),
+                    phone: formData.get('phone'),
+                    country: formData.get('country'),
+                    religion: formData.get('religion'),
+                    gender: formData.get('gender'),
+                    birthDate: formData.get('birthDate'),
+                    weight: formData.get('weight'),
+                    height: formData.get('height'),
+                    job: formData.get('job'),
+                    goal: goalValues.join(', '),
+                    joiningReason: formData.get('joiningReason'),
+                    healthIssues: formData.get('healthIssues'),
+                    medications: formData.get('medications'),
+                    injuries: formData.get('injuries'),
+                    foodAllergies: formData.get('foodAllergies'),
+                    isSmoker: formData.get('isSmoker'),
+                    mealsCount: formData.get('mealsCount'),
+                    dislikedFood: formData.get('dislikedFood'),
+                    preferredProtein: formData.get('preferredProtein'),
+                    budget: formData.get('budget'),
+                    trainingExperience: formData.get('trainingExperience'),
+                    trainingPlace: formData.get('trainingPlace'),
+                    trainingDays: formData.get('trainingDays'),
+                    photo: photoUrl,
+                    notes: formData.get('notes'),
+                    registrationDate: new Date().toISOString(),
+                    createdAt: new Date().toISOString(),
+                    source: 'public_form',
+                    status: 'active'
+                };
+
+                // Save to Firestore
+                await db.collection('clients').add(clientData);
+
+                // Show success
+                loading.style.display = 'none';
+                document.getElementById('success').style.display = 'block';
+                document.getElementById('client-code-display').textContent = clientCode;
+
+            } catch (error) {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                form.style.display = 'block';
+                showAlert('حدث خطأ: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+
+</html>
