@@ -496,6 +496,13 @@ class Database {
             .get();
 
           if (!snapshot.empty) {
+            // Check if manually edited - skip if so
+            const existingData = snapshot.docs[0].data();
+            if (existingData.manuallyEdited === true) {
+              console.log('⏭️ تخطي سجل معدّل يدوياً:', saleData.clientCode);
+              skippedCount++;
+              continue;
+            }
             await snapshot.docs[0].ref.update(saleData);
             updatedCount++;
           } else {

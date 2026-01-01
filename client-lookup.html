@@ -130,9 +130,10 @@
         // Display client info
         displayClientInfo(client);
 
-        // For now, show placeholder for subscriptions/plans until those collections are fully implemented
-        document.getElementById('subscription-info').innerHTML = '<p style="color: var(--text-muted);">جاري التحميل...</p>';
-        document.getElementById('subscription-history').innerHTML = '<p style="color: var(--text-muted);">قريباً</p>';
+        // Load and display subscriptions
+        await loadClientSubscriptions(client.clientCode);
+
+        // Placeholders for future features
         document.getElementById('plans-info').innerHTML = '<p style="color: var(--text-muted);">قريباً</p>';
         document.getElementById('updates-info').innerHTML = '<p style="color: var(--text-muted);">قريباً</p>';
 
@@ -140,6 +141,90 @@
         hideLoading();
         console.error('Search error:', error);
         showAlert('حدث خطأ: ' + error.message, 'danger');
+      }
+    }
+
+    // Load client subscriptions
+    async function loadClientSubscriptions(clientCode) {
+      try {
+        const allSubs = await window.db.getAllSubscriptions();
+        const clientSubs = allSubs.filter(s => String(s.clientCode) === String(clientCode));
+
+        // Sort by startDate descending
+        clientSubs.sort((a, b) => new Date(b.startDate || b.createdAt) - new Date(a.startDate || a.createdAt));
+
+        const now = new Date();
+
+        // Find active subscription
+        const activeSub = clientSubs.find(s => s.endDate && new Date(s.endDate) > now);
+
+        // Display active subscription
+        if (activeSub) {
+          const daysLeft = Math.ceil((new Date(activeSub.endDate) - now) / (1000 * 60 * 60 * 24));
+          document.getElementById('subscription-info').innerHTML = `
+            <div style="background: linear-gradient(135deg, rgba(0,200,83,0.1) 0%, rgba(0,150,60,0.1) 100%); padding: 1rem; border-radius: var(--radius-md); border-left: 4px solid #00c853;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <span class="badge badge-success" style="font-size: 1rem;">● نشط</span>
+                  <div style="font-size: 1.2rem; font-weight: 600; margin-top: 0.5rem;">${activeSub.package || 'باقة'}</div>
+                </div>
+                <div style="text-align: left;">
+                  <div style="font-size: 2rem; font-weight: 700; color: var(--accent-green);">${daysLeft}</div>
+                  <div style="font-size: 0.85rem; color: var(--text-muted);">يوم متبقي</div>
+                </div>
+              </div>
+              <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                <div>📅 من: ${activeSub.startDate ? new Date(activeSub.startDate).toLocaleDateString('ar-EG') : '-'}</div>
+                <div>📅 إلى: ${activeSub.endDate ? new Date(activeSub.endDate).toLocaleDateString('ar-EG') : '-'}</div>
+                <div>💰 المبلغ: ${activeSub.amount || 0} ${activeSub.currency || 'EGP'}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          document.getElementById('subscription-info').innerHTML = `
+            <div style="background: rgba(158,158,158,0.1); padding: 1rem; border-radius: var(--radius-md); text-align: center;">
+              <div style="font-size: 2rem;">😔</div>
+              <div style="color: var(--text-muted);">لا يوجد اشتراك نشط</div>
+              <a href="sales.html" class="btn btn-primary" style="margin-top: 1rem;">➕ تسجيل اشتراك</a>
+            </div>
+          `;
+        }
+
+        // Display subscription history
+        if (clientSubs.length > 0) {
+          document.getElementById('subscription-history').innerHTML = clientSubs.map(sub => {
+            const isActive = sub.endDate && new Date(sub.endDate) > now;
+            const statusBadge = isActive
+              ? '<span style="color: #00c853;">● نشط</span>'
+              : '<span style="color: #9e9e9e;">● منتهي</span>';
+
+            return `
+              <div style="padding: 0.75rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong>${sub.package || 'باقة'}</strong>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                      ${sub.amount || 0} ${sub.currency || 'EGP'} • ${sub.receiveAccount || ''}
+                    </div>
+                  </div>
+                  <div style="text-align: left;">
+                    ${statusBadge}
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                      ${sub.startDate ? new Date(sub.startDate).toLocaleDateString('ar-EG') : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          document.getElementById('subscription-history').innerHTML = '<p style="color: var(--text-muted);">لا توجد اشتراكات سابقة</p>';
+        }
+
+      } catch (e) {
+        console.error('Error loading subscriptions:', e);
+        document.getElementById('subscription-info').innerHTML = '<p style="color: var(--text-muted);">فشل تحميل بيانات الاشتراك</p>';
+        document.getElementById('subscription-history').innerHTML = '';
       }
     }
 
