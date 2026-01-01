@@ -126,6 +126,7 @@
             try {
                 const currentSettings = await window.db.getSettings();
                 document.getElementById('sheetsApiUrl').value = currentSettings.sheetsApiUrl || '';
+                document.getElementById('autoSync').checked = currentSettings.autoSync === true;
             } catch (e) {
                 console.error("Failed to load settings", e);
                 // Don't alert immediately on load, might be first run
@@ -149,9 +150,12 @@
             saveBtn.disabled = true;
 
             try {
+                const autoSync = document.getElementById('autoSync').checked;
+                
                 // Update settings in Cloud DB
                 await window.db.updateSettings({
-                    sheetsApiUrl: sheetsApiUrl
+                    sheetsApiUrl: sheetsApiUrl,
+                    autoSync: autoSync
                 });
 
                 showAlert('تم حفظ الإعدادات بنجاح! ✅', 'success');
