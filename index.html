@@ -88,51 +88,132 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/db.js"></script>
   <script>
+    // Sync indicator element
+    function createSyncIndicator() {
+      const indicator = document.createElement('div');
+      indicator.id = 'sync-indicator';
+      indicator.innerHTML = '🔄 جاري المزامنة...';
+      indicator.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        z-index: 9999;
+        display: none;
+        animation: pulse 1.5s infinite;
+      `;
+      document.body.appendChild(indicator);
+
+      // Add animation style
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.05); }
+        }
+      `;
+      document.head.appendChild(style);
+
+      return indicator;
+    }
+
+    function showSyncIndicator() {
+      const ind = document.getElementById('sync-indicator');
+      if (ind) ind.style.display = 'block';
+    }
+
+    function hideSyncIndicator() {
+      const ind = document.getElementById('sync-indicator');
+      if (ind) ind.style.display = 'none';
+    }
+
+    function updateSyncIndicator(text) {
+      const ind = document.getElementById('sync-indicator');
+      if (ind) ind.innerHTML = text;
+    }
+
+    // Main sync function
+    async function performSync(showIndicator = true) {
+      if (!window.db) return;
+
+      try {
+        const settings = await window.db.getSettings();
+        if (!(settings.autoSync === true && settings.sheetsApiUrl)) {
+          console.log('ℹ️ المزامنة التلقائية غير مفعّلة');
+          return;
+        }
+
+        if (showIndicator) showSyncIndicator();
+        console.log('🔄 جاري المزامنة...');
+
+        const result = await window.db.syncFromGoogleSheets();
+        console.log('✅ تمت المزامنة:', result.message);
+
+        if (showIndicator) {
+          updateSyncIndicator('✅ ' + result.message);
+          setTimeout(hideSyncIndicator, 3000);
+        }
+
+        // Refresh stats after sync
+        await refreshStats();
+
+      } catch (error) {
+        console.error('❌ فشلت المزامنة:', error);
+        if (showIndicator) {
+          updateSyncIndicator('❌ فشلت المزامنة');
+          setTimeout(hideSyncIndicator, 3000);
+        }
+      }
+    }
+
+    // Refresh stats display
+    async function refreshStats() {
+      try {
+        const clients = await window.db.getAllClients();
+        const count = clients.length;
+
+        document.getElementById('stats-container').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${count}</div>
+            <div class="stat-label">عدد العملاء</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">Cloud</div>
+            <div class="stat-label">حالة النظام</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Initial load
     async function loadDashboardStats() {
       if (!window.db) {
         setTimeout(loadDashboardStats, 500);
         return;
       }
 
-      try {
-        // Check for auto-sync setting
-        const settings = await window.db.getSettings();
-        console.log('⚙️ Settings loaded:', JSON.stringify(settings));
-        console.log('⚙️ autoSync =', settings.autoSync, '| sheetsApiUrl =', settings.sheetsApiUrl ? 'موجود' : 'غير موجود');
+      // Create sync indicator
+      createSyncIndicator();
 
-        if (settings.autoSync === true && settings.sheetsApiUrl) {
-          console.log('🔄 المزامنة التلقائية مفعّلة - جاري المزامنة...');
-          try {
-            const result = await window.db.syncFromGoogleSheets();
-            console.log('✅ تمت المزامنة:', result.message);
-            // Show notification to user
-            if (typeof showAlert === 'function') {
-              showAlert('تمت المزامنة التلقائية: ' + result.message, 'success');
-            }
-          } catch (syncError) {
-            console.error('❌ فشلت المزامنة التلقائية:', syncError);
-          }
-        } else {
-          console.log('ℹ️ المزامنة التلقائية غير مفعّلة');
-        }
+      // Initial sync
+      await performSync(true);
 
-        // Simple stats for now: just count clients
-        const clients = await window.db.getAllClients();
-        const count = clients.length;
+      // Set up periodic sync every 5 minutes (300000 ms)
+      const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+      setInterval(() => {
+        console.log('⏰ المزامنة الدورية...');
+        performSync(true);
+      }, SYNC_INTERVAL);
 
-        document.getElementById('stats-container').innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-value">${count}</div>
-                    <div class="stat-label">عدد العملاء</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">Cloud</div>
-                    <div class="stat-label">حالة النظام</div>
-                </div>
-              `;
-      } catch (e) {
-        console.error(e);
-      }
+      console.log('⏰ المزامنة الدورية مفعّلة: كل 5 دقائق');
     }
 
     document.addEventListener('DOMContentLoaded', loadDashboardStats);
