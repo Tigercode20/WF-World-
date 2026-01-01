@@ -49,13 +49,19 @@
 
                 <!-- Client Selection -->
                 <div class="form-group">
-                    <label for="clientCode" class="form-label">العميل *</label>
+                    <label for="clientCode" class="form-label">كود العميل *</label>
                     <select id="clientCode" name="clientCode" class="form-control" required>
                         <option value="">-- اختر العميل --</option>
                     </select>
                     <small style="color: var(--text-muted); font-size: 0.85rem;">
                         لا تجد العميل؟ <a href="client-registration.html">سجّل عميل جديد</a>
                     </small>
+                </div>
+
+                <!-- Client Info Display -->
+                <div id="client-info-box" class="alert alert-info" style="display: none; margin-bottom: 1rem;">
+                    <strong>📋 بيانات العميل:</strong>
+                    <div id="client-info-content" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
                 </div>
 
                 <!-- Package -->
@@ -148,21 +154,55 @@
             loadRecentSales();
         });
 
+        // Store loaded clients for auto-fill
+        let allClients = [];
+
         // Load clients into dropdown
         async function loadClients() {
             try {
-                const clients = await db.getAllClients();
+                allClients = await db.getAllClients();
                 const select = document.getElementById('clientCode');
                 select.innerHTML = '<option value="">-- اختر العميل --</option>';
 
-                clients.forEach(client => {
+                allClients.forEach(client => {
                     const option = document.createElement('option');
                     option.value = client.clientCode;
                     option.textContent = `${client.fullName} (${client.clientCode})`;
                     select.appendChild(option);
                 });
+
+                // Add change event listener
+                select.addEventListener('change', showClientInfo);
             } catch (e) {
                 console.error('Error loading clients:', e);
+            }
+        }
+
+        // Show client info when code is selected
+        function showClientInfo() {
+            const clientCode = document.getElementById('clientCode').value;
+            const infoBox = document.getElementById('client-info-box');
+            const infoContent = document.getElementById('client-info-content');
+
+            if (!clientCode) {
+                infoBox.style.display = 'none';
+                return;
+            }
+
+            const client = allClients.find(c => String(c.clientCode) === String(clientCode));
+
+            if (client) {
+                infoBox.style.display = 'block';
+                infoContent.innerHTML = `
+                    <div>👤 <strong>الاسم:</strong> ${client.fullName || '-'}</div>
+                    <div>📧 <strong>البريد:</strong> ${client.email || '-'}</div>
+                    <div>📱 <strong>الهاتف:</strong> ${client.phone || '-'}</div>
+                    <div>🌍 <strong>الدولة:</strong> ${client.country || '-'}</div>
+                `;
+            } else {
+                infoBox.style.display = 'block';
+                infoBox.style.borderColor = '#ff5252';
+                infoContent.innerHTML = '<span style="color: #ff5252;">⚠️ هذا الكود غير موجود في قائمة العملاء!</span>';
             }
         }
 
