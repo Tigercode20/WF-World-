@@ -312,7 +312,10 @@
 
             try {
                 const sales = await db.getAllSubscriptions();
-                const recentSales = sales.slice(-10).reverse();
+                const clients = await db.getAllClients();
+                const clientCodes = new Set(clients.map(c => String(c.clientCode)));
+
+                const recentSales = sales.slice(-15).reverse();
 
                 if (recentSales.length === 0) {
                     container.innerHTML = '<p style="color: var(--text-muted);">لم يتم تسجيل أي مبيعات بعد</p>';
@@ -326,20 +329,35 @@
                         ? '<span style="color: #00c853; font-weight: 600;">● نشط</span>'
                         : '<span style="color: #ff5252; font-weight: 600;">● منتهي</span>';
 
+                    // Check if client exists
+                    const clientExists = clientCodes.has(String(sale.clientCode));
+                    const errorBadge = !clientExists
+                        ? '<span style="background: #ff5252; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-right: 8px;">⚠️ عميل غير موجود</span>'
+                        : '';
+
                     return `
-          <div style="padding: 0.75rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
+          <div style="padding: 0.75rem; background: var(--bg-glass); border-radius: var(--radius-md); margin-bottom: 0.5rem; ${!clientExists ? 'border-left: 3px solid #ff5252;' : ''}">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="flex: 1;">
+                ${errorBadge}
                 <strong>${sale.clientName || sale.clientCode}</strong>
                 <div style="font-size: 0.85rem; color: var(--text-muted);">
                   ${sale.package || 'باقة'} • ${sale.amount || 0} ${sale.currency || 'EGP'} • ${sale.receiveAccount || ''}
                 </div>
               </div>
-              <div style="text-align: left;">
-                ${statusBadge}
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                  ${sale.startDate ? new Date(sale.startDate).toLocaleDateString('ar-EG') : ''}
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="text-align: center;">
+                  ${statusBadge}
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">
+                    ${sale.startDate ? new Date(sale.startDate).toLocaleDateString('ar-EG') : ''}
+                  </div>
                 </div>
+                <button onclick="editSale('${sale.id}')" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                  ✏️
+                </button>
+                <button onclick="deleteSale('${sale.id}', '${sale.clientName || sale.clientCode}')" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #ff5252; border-color: #ff5252;">
+                  🗑️
+                </button>
               </div>
             </div>
           </div>
@@ -348,6 +366,47 @@
             } catch (e) {
                 console.error('Error loading sales:', e);
                 container.innerHTML = '<p style="color: var(--text-muted);">فشل تحميل المبيعات</p>';
+            }
+        }
+
+        // Delete sale
+        async function deleteSale(saleId, clientName) {
+            if (!confirm(`هل تريد حذف هذا الاشتراك للعميل "${clientName}"؟`)) return;
+
+            try {
+                await db.subscriptionsCol.doc(saleId).delete();
+                showAlert('تم حذف الاشتراك بنجاح', 'success');
+                loadRecentSales();
+            } catch (e) {
+                showAlert('فشل الحذف: ' + e.message, 'danger');
+            }
+        }
+
+        // Edit sale - populate form with sale data
+        async function editSale(saleId) {
+            try {
+                const doc = await db.subscriptionsCol.doc(saleId).get();
+                if (!doc.exists) {
+                    showAlert('لم يتم العثور على الاشتراك', 'warning');
+                    return;
+                }
+
+                const sale = doc.data();
+
+                // Fill form
+                document.getElementById('type').value = sale.subscriptionType || 'renew';
+                document.getElementById('clientCode').value = sale.clientCode || '';
+                document.getElementById('package').value = sale.package || '';
+                document.getElementById('amount').value = sale.amount || '';
+                document.getElementById('currency').value = sale.currency || 'EGP';
+                document.getElementById('paymentMethod').value = sale.receiveAccount || '';
+
+                // Scroll to form
+                document.getElementById('sales-form').scrollIntoView({ behavior: 'smooth' });
+
+                showAlert('تم تحميل بيانات الاشتراك للتعديل', 'info');
+            } catch (e) {
+                showAlert('فشل تحميل البيانات: ' + e.message, 'danger');
             }
         }
 
